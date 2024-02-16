@@ -1627,7 +1627,6 @@ def update_deployment_configs(cmd, resource_group_name, name,
         deployment_storage_container_name = deployment_storage_container.name
         deployment_config_storage_value = getattr(deployment_storage.primary_endpoints, 'blob') + deployment_storage_container_name
         functionapp_deployment_storage["value"] = deployment_config_storage_value
-        functionapp_deployment_storage["type"] = "blobContainer"
         
     # Authentication
     assign_identities = None
@@ -1644,7 +1643,6 @@ def update_deployment_configs(cmd, resource_group_name, name,
             functionapp_deployment_storage["authentication"]["userAssignedIdentityResourceId"] = None
             functionapp_deployment_storage["authentication"]["storageAccountConnectionStringName"] = None
         elif deployment_storage_auth_type == 'UserAssignedIdentity':
-            assign_identities = [deployment_storage_auth_value]
             deployment_storage_user_assigned_identity = _get_or_create_user_assigned_identity(cmd, resource_group_name, name, deployment_storage_auth_value, None)
             functionapp_deployment_storage["authentication"]["userAssignedIdentityResourceId"] = deployment_storage_user_assigned_identity.id
             functionapp_deployment_storage["authentication"]["storageAccountConnectionStringName"] = None
