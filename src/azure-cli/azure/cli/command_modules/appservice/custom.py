@@ -1352,23 +1352,12 @@ def list_runtimes(cmd, os_type=None, linux=False):
             linux = False
         if os_type == LINUX_OS_NAME:
             windows = False
-
-    is_flex = False
-    if sku is not None:
-        is_flex = sku.lower() == 'flex'
-        if not is_flex:
-            raise ValidationError("The --sku parameter only supports 'flex'.")
-        elif (is_flex and not linux):
-            raise ArgumentUsageError("The flex sku is only supported on Linux. Please try removing the --os-type parameter.")
-
-    if is_flex:
-        return FLEX_RUNTIMES
     
     runtime_helper = _StackRuntimeHelper(cmd=cmd, linux=linux, windows=windows)
     return runtime_helper.get_stack_names_only(delimiter=":")
 
 
-def list_function_app_runtimes(cmd, os_type=None, sku=None):
+def list_function_app_runtimes(cmd, os_type=None):
     # show both linux and windows stacks by default
     from ._constants import (FLEX_RUNTIMES)
     
@@ -1383,10 +1372,10 @@ def list_function_app_runtimes(cmd, os_type=None, sku=None):
     linux_stacks = [r.to_dict() for r in runtime_helper.stacks if r.linux]
     windows_stacks = [r.to_dict() for r in runtime_helper.stacks if not r.linux]
     if linux and not windows:
-        return linux_stacks
+        return {LINUX_OS_NAME: linux_stacks, 'Flex': FLEX_RUNTIMES}
     if windows and not linux:
         return windows_stacks
-    return {WINDOWS_OS_NAME: windows_stacks, LINUX_OS_NAME: linux_stacks}
+    return {WINDOWS_OS_NAME: windows_stacks, LINUX_OS_NAME: linux_stacks, 'flex': FLEX_RUNTIMES}
 
 
 def delete_logic_app(cmd, resource_group_name, name, slot=None):
