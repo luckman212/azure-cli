@@ -1372,7 +1372,7 @@ def list_function_app_runtimes(cmd, os_type=None):
     linux_stacks = [r.to_dict() for r in runtime_helper.stacks if r.linux]
     windows_stacks = [r.to_dict() for r in runtime_helper.stacks if not r.linux]
     if linux and not windows:
-        return {LINUX_OS_NAME: linux_stacks, 'Flex': FLEX_RUNTIMES}
+        return {LINUX_OS_NAME: linux_stacks, 'flex': FLEX_RUNTIMES}
     if windows and not linux:
         return windows_stacks
     return {WINDOWS_OS_NAME: windows_stacks, LINUX_OS_NAME: linux_stacks, 'flex': FLEX_RUNTIMES}
