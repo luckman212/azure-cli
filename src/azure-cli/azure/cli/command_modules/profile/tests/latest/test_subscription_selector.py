@@ -52,6 +52,14 @@ DUMMY_SUBSCRIPTIONS = [
     }
 ]
 
+EXPECTED_SUBSCRIPTION_TABLE = """\
+No     Subscription name                     Subscription ID                       Tenant
+-----  ------------------------------------  ------------------------------------  --------
+[1]    N/A(tenant level account)             00000000-0000-0000-1111-222222222222  Tenant 2
+[2]    SUB 1                                 00000000-0000-0000-0000-111111111111  Tenant 1
+[3] *  \x1b[96msub 2\x1b[0m                                 \x1b[96m00000000-0000-0000-0000-222222222222\x1b[0m  \x1b[96mTenant 1\x1b[0m
+[4]    Sub 3 with long long long long lo...  00000000-0000-0000-0000-333333333333  Tenant 1"""
+
 DUMMY_SUBSCRIPTIONS_NO_TENANT_INFO = [
     {
         "id": "00000000-0000-0000-0000-222222222222",
@@ -68,6 +76,12 @@ DUMMY_SUBSCRIPTIONS_NO_TENANT_INFO = [
         "isDefault": False
     }
 ]
+
+EXPECTED_DUMMY_SUBSCRIPTION_TABLE = """\
+No     Subscription name    Subscription ID                       Tenant
+-----  -------------------  ------------------------------------  ------------------------------------
+[1]    sub 1                00000000-0000-0000-0000-111111111111  00000000-0000-0000-1111-111111111111
+[2] *  \x1b[96msub 2\x1b[0m                \x1b[96m00000000-0000-0000-0000-222222222222\x1b[0m  \x1b[96m00000000-0000-0000-1111-111111111111\x1b[0m"""
 
 
 class TestSubscriptionSelection(unittest.TestCase):
@@ -88,30 +102,15 @@ class TestSubscriptionSelection(unittest.TestCase):
         #   azdev test test_format_subscription_table
         with mock.patch.object(format_styled_text, 'theme', 'dark', create=True):
             selector = SubscriptionSelector(sub)
-
             assert (selector._index_to_subscription_map == {
                 '1': sub[3],
                 '2': sub[1],
                 '3': sub[0],
                 '4': sub[2]})
-
-            expected_table_str = """\
-No     Subscription name                     Subscription ID                       Tenant
------  ------------------------------------  ------------------------------------  --------
-[1]    N/A(tenant level account)             00000000-0000-0000-1111-222222222222  Tenant 2
-[2]    SUB 1                                 00000000-0000-0000-0000-111111111111  Tenant 1
-[3] *  \x1b[96msub 2\x1b[0m                                 \x1b[96m00000000-0000-0000-0000-222222222222\x1b[0m  \x1b[96mTenant 1\x1b[0m
-[4]    Sub 3 with long long long long lo...  00000000-0000-0000-0000-333333333333  Tenant 1"""
-            assert selector._table_str == expected_table_str
+            assert selector._table_str == EXPECTED_SUBSCRIPTION_TABLE
 
             selector = SubscriptionSelector(DUMMY_SUBSCRIPTIONS_NO_TENANT_INFO)
-
-            expected_table_str = """\
-No     Subscription name    Subscription ID                       Tenant
------  -------------------  ------------------------------------  ------------------------------------
-[1]    sub 1                00000000-0000-0000-0000-111111111111  00000000-0000-0000-1111-111111111111
-[2] *  \x1b[96msub 2\x1b[0m                \x1b[96m00000000-0000-0000-0000-222222222222\x1b[0m  \x1b[96m00000000-0000-0000-1111-111111111111\x1b[0m"""
-            assert selector._table_str == expected_table_str
+            assert selector._table_str == EXPECTED_DUMMY_SUBSCRIPTION_TABLE
 
 
 def invoke_subscription_selector():
