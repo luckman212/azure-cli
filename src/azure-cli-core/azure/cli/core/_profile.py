@@ -148,14 +148,11 @@ class Profile:
               use_device_code=False,
               allow_no_subscriptions=False,
               use_cert_sn_issuer=None,
-              interactive_subscription_selection=False,
+              show_progress=False,
               **kwargs):
         """
         For service principal, `password` is a dict returned by ServicePrincipalAuth.build_credential
         """
-        # A shortcut for quick debugging
-        # return self._invoke_interactive_subscription_selection_demo()
-
         if not scopes:
             scopes = self._arm_scope
 
@@ -178,7 +175,7 @@ class Profile:
                 identity.login_with_service_principal(username, password, scopes=scopes)
 
         # We have finished login. Let's find all subscriptions.
-        if interactive_subscription_selection:
+        if show_progress:
             message = ('Retrieving subscriptions for the selection...' if tenant else
                        'Retrieving tenants and subscriptions for the selection...')
             print(f"\n{message}")
@@ -213,7 +210,7 @@ class Profile:
         consolidated = self._normalize_properties(username, subscriptions,
                                                   is_service_principal, bool(use_cert_sn_issuer))
 
-        self._set_subscriptions(consolidated, interactive_subscription_selection=interactive_subscription_selection)
+        self._set_subscriptions(consolidated)
         return deepcopy(consolidated)
 
     def login_with_managed_identity(self, identity_id=None, allow_no_subscriptions=None):
@@ -475,8 +472,7 @@ class Profile:
         s.state = 'Enabled'
         return s
 
-    def _set_subscriptions(self, new_subscriptions, merge=True, secondary_key_name=None,
-                           interactive_subscription_selection=None):
+    def _set_subscriptions(self, new_subscriptions, merge=True, secondary_key_name=None):
 
         def _get_key_name(account, secondary_key_name):
             return (account[_SUBSCRIPTION_ID] if secondary_key_name is None
@@ -502,7 +498,6 @@ class Profile:
         dic.update((_get_key_name(x, secondary_key_name), x) for x in new_subscriptions)
         subscriptions = list(dic.values())
         if subscriptions:
-            # Automatically pick one first
             if active_one:
                 new_active_one = next(
                     (x for x in new_subscriptions if _match_account(x, active_subscription_id, secondary_key_name,
@@ -516,10 +511,6 @@ class Profile:
             else:
                 new_active_one = Profile._pick_working_subscription(new_subscriptions)
 
-            # Let the user interactively select one
-            if interactive_subscription_selection:
-                new_active_one = Profile._interactively_select_subscription(subscriptions, new_active_one)
-
             new_active_one[_IS_DEFAULT_SUBSCRIPTION] = True
             default_sub_id = new_active_one[_SUBSCRIPTION_ID]
 
@@ -528,92 +519,8 @@ class Profile:
 
     @staticmethod
     def _pick_working_subscription(subscriptions):
-        """Pick the first enabled subscription"""
         s = next((x for x in subscriptions if x.get(_STATE) == 'Enabled'), None)
         return s or subscriptions[0]
-
-    @staticmethod
-    def _interactively_select_subscription(subscriptions, active_one):
-        from azure.cli.core.style import format_styled_text, Style
-        index_to_subscription_map = {}
-        table_data = []
-        subscriptions_sorted = sorted(subscriptions, key=lambda s: s[_SUBSCRIPTION_NAME].lower())
-
-        def get_tenant_string(subscription):
-            try:
-                return subscription[_TENANT_DISPLAY_NAME]
-            except KeyError:
-                return subscription[_TENANT_ID]
-
-        def highlight_text(text, is_default):
-            return format_styled_text((Style.HIGHLIGHT, text)) if is_default else text
-
-        for index, sub in enumerate(subscriptions_sorted, start=1):
-            # There is no need to use int, as int requires parsing. str match is sufficient.
-            index_str = str(index)  # '1', '2', ...
-            index_to_subscription_map[index_str] = sub
-
-            # asterisk = format_styled_text((Style.WARNING, '*'))
-            asterisk = ' *'
-            is_default = sub is active_one
-
-            # Trim subscription name if it is too long
-            subscription_name = sub[_SUBSCRIPTION_NAME]
-            length_limit = 40
-            if len(subscription_name) > length_limit:
-                subscription_name = subscription_name[:length_limit - 3] + '...'
-
-            row = {
-                'No': f'[{index_str}]' + (asterisk if is_default else ''),
-                'Subscription name': highlight_text(subscription_name, is_default),
-                'Subscription ID': highlight_text(sub[_SUBSCRIPTION_ID], is_default),
-                'Tenant': highlight_text(get_tenant_string(sub), is_default)
-            }
-            table_data.append(row)
-
-        from tabulate import tabulate
-        table_str = tabulate(table_data, headers="keys", tablefmt="simple", disable_numparse=True)
-
-        print()
-        print('[Tenant and subscription selection]')
-        print()
-        print(table_str)
-        print()
-        tenant_string = get_tenant_string(active_one)
-        print("The default is marked with an *; "
-              f"the default tenant is '{tenant_string}' and subscription is "
-              f"'{active_one[_SUBSCRIPTION_NAME]}' ({active_one[_SUBSCRIPTION_ID]}).")
-        print()
-
-        from knack.prompting import prompt, NoTTYException
-
-        # Keep prompting until the user inputs a valid index
-        while True:
-            try:
-                select_index = prompt('Select a subscription and tenant (Type a number or Enter for no changes): ')
-            except NoTTYException:
-                # This is a good example showing interactive and non-TTY are not contradictory
-                logger.warning("No TTY to select the default subscription.")
-                return active_one
-
-            # Nothing is typed, keep current selection
-            if select_index == '':
-                break
-
-            if select_index in index_to_subscription_map:
-                active_one = index_to_subscription_map[select_index]
-                break
-
-            logger.warning("Invalid selection.")
-            # Let retry
-
-        # Echo the selection
-        tenant_string = get_tenant_string(active_one)
-        print()
-        print(f"Tenant: {tenant_string}")
-        print(f"Subscription: {active_one[_SUBSCRIPTION_NAME]} ({active_one[_SUBSCRIPTION_ID]})")
-        print()
-        return active_one
 
     def is_tenant_level_account(self):
         return self.get_subscription()[_SUBSCRIPTION_NAME] == _TENANT_LEVEL_ACCOUNT_NAME
@@ -804,55 +711,6 @@ class Profile:
                 installation_id = str(uuid.uuid1())
             self._storage[_INSTALLATION_ID] = installation_id
         return installation_id
-
-    def _invoke_interactive_subscription_selection_demo(self, with_tenant_domain):
-        # Random order, as returned by REST API
-        subscriptions = [
-            # 2
-            {
-                "id": "00000000-0000-0000-0000-222222222222",
-                "name": "sub 2",
-                "tenantDefaultDomain": "microsoft.onmicrosoft.com",
-                "tenantId": "00000000-0000-0000-1111-111111111111",
-                "environmentName": "AzureCloud",
-            },
-            # 1
-            {
-                "id": "00000000-0000-0000-0000-111111111111",
-                "name": "SUB 1",
-                "tenantDefaultDomain": "microsoft.onmicrosoft.com",
-                "tenantId": "00000000-0000-0000-1111-111111111111",
-                "environmentName": "AzureCloud",
-            },
-            # 3
-            {
-                "id": "00000000-0000-0000-0000-333333333333",
-                "name": "Sub 3 with long long long long name",
-                "tenantDefaultDomain": "microsoft.onmicrosoft.com",
-                "tenantId": "00000000-0000-0000-1111-111111111111",
-                "environmentName": "AzureCloud",
-            },
-            # 3
-            {
-                "id": "00000000-0000-0000-1111-111111111111",
-                "name": "N/A(tenant level account)",
-                "tenantDefaultDomain": "azuresdkteam.onmicrosoft.com",
-                "tenantId": "00000000-0000-0000-1111-222222222222",
-                "environmentName": "AzureCloud",
-            }
-        ]
-
-        subscriptions_no_tenant_domain = [
-            {
-                "id": "00000000-0000-0000-0000-222222222222",
-                "name": "sub 2",
-                "tenantId": "00000000-0000-0000-1111-111111111111",
-                "environmentName": "AzureCloud",
-            }
-        ]
-        self._interactively_select_subscription(
-            subscriptions if with_tenant_domain else subscriptions_no_tenant_domain, subscriptions[0])
-        return []
 
 
 class MsiAccountTypes:
