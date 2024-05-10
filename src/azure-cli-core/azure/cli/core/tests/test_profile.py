@@ -152,7 +152,7 @@ class TestProfile(unittest.TestCase):
                                              home_tenant_id=cls.tenant_id)
 
         # Dummy result of azure.cli.core._profile.SubscriptionFinder.find_using_common_tenant
-        # It also contains tenant information, compared to the result of _find_using_specific_tenant
+        # It also contains tenant information, compared to the result of find_using_specific_tenant
         cls.subscription1_with_tenant_info = SubscriptionStub(
             cls.id1, cls.display_name1, cls.state1,
             tenant_id=cls.tenant_id, managed_by_tenants=cls.managed_by_tenants,
