@@ -2,9 +2,12 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License. See License.txt in the project root for license information.
 # --------------------------------------------------------------------------------------------
+
 import unittest
 from azure.cli.command_modules.profile._subscription_selector import SubscriptionSelector
 
+
+# These dummy subscriptions are used in both unit test and interactive test
 DUMMY_SUBSCRIPTIONS = [
     # 0: sub 2
     {
@@ -83,8 +86,11 @@ No     Subscription name                     Subscription ID                    
         assert selector._table_str == expected_table_str
 
 
-# Invoke this method with: python -m azure.cli.command_modules.profile.tests.latest.test_subscription_selector
 def invoke_subscription_selector():
+    """This method provides a way of directly testing subscription selection, without running an actual `az login`.
+    Invoke this method with:
+    python -m azure.cli.command_modules.profile.tests.latest.test_subscription_selector
+    """
     result = SubscriptionSelector(DUMMY_SUBSCRIPTIONS)()
     print("Result:", result)
 

@@ -10,7 +10,7 @@ from knack.log import get_logger
 logger = get_logger(__name__)
 
 
-class SubscriptionSelector:
+class SubscriptionSelector:  # pylint: disable=too-few-public-methods
     DEFAULT_ROW_MARKER = '*'
 
     def __init__(self, subscriptions):

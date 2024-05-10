@@ -32,7 +32,8 @@ _CLOUD_CONSOLE_LOGIN_WARNING = ("Cloud Shell is automatically authenticated unde
 
 LOGIN_ANNOUNCEMENT = (
     "[Announcements]\n"
-    "Share your feedback regarding your experience with `az login` at https://aka.ms/azloginfeedback\n\n"
+    "With the new Azure CLI login experience, you can select the subscription you want to use more easily. "
+    "Learn more about it and its configuration at https://go.microsoft.com/fwlink/?linkid=2271236\n\n"
     "If you encounter any problem, please open an issue at https://aka.ms/azclibug\n"
 )
 
