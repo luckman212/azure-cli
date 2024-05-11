@@ -4,6 +4,7 @@
 # --------------------------------------------------------------------------------------------
 
 import os
+import sys
 
 from knack.log import get_logger
 from knack.prompting import prompt_pass, NoTTYException
@@ -150,7 +151,7 @@ def login(cmd, username=None, password=None, service_principal=None, tenant=None
         from azure.cli.core.auth.identity import ServicePrincipalAuth
         password = ServicePrincipalAuth.build_credential(password, client_assertion, use_cert_sn_issuer)
 
-    select_subscription = interactive and \
+    select_subscription = interactive and sys.stdin.isatty() and sys.stdout.isatty() and \
         cmd.cli_ctx.config.getboolean('core', 'login_experience_v2', fallback=True)
 
     subscriptions = profile.login(

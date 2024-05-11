@@ -22,7 +22,6 @@ class SubscriptionSelector:  # pylint: disable=too-few-public-methods
         from azure.cli.core.style import format_styled_text, Style
         index_to_subscription_map = {}
         table_data = []
-
         subscription_name_length_limit = 36
 
         # Sort by subscription name
@@ -54,33 +53,26 @@ class SubscriptionSelector:  # pylint: disable=too-few-public-methods
             table_data.append(row)
 
         from tabulate import tabulate
-        table_str = tabulate(table_data, headers="keys", tablefmt="simple", disable_numparse=True)
+        self._table_str = tabulate(table_data, headers="keys", tablefmt="simple", disable_numparse=True)
 
         self._index_to_subscription_map = index_to_subscription_map
-        self._table_str = table_str
 
     def __call__(self):
         """Select a subscription.
         NOTE: The original subscription list is not modified. Call Profile.set_active_subscription to modify it.
         """
+        from knack.prompting import prompt
+
         print(f'\n[Tenant and subscription selection]\n\n{self._table_str}\n')
-        active_one = self._active_one
-        tenant_string = self._get_tenant_string(active_one)
+        tenant_string = self._get_tenant_string(self._active_one)
         print(f"The default is marked with an {self.DEFAULT_ROW_MARKER}; "
               f"the default tenant is '{tenant_string}' and subscription is "
-              f"'{active_one[_SUBSCRIPTION_NAME]}' ({active_one[_SUBSCRIPTION_ID]}).\n")
+              f"'{self._active_one[_SUBSCRIPTION_NAME]}' ({self._active_one[_SUBSCRIPTION_ID]}).\n")
 
         selected = self._active_one
-        from knack.prompting import prompt, NoTTYException
-
         # Keep prompting until the user inputs a valid index
         while True:
-            try:
-                select_index = prompt('Select a subscription and tenant (Type a number or Enter for no changes): ')
-            except NoTTYException:
-                # This is a good example showing interactive and non-TTY are not contradictory
-                logger.warning("No TTY to select the default subscription.")
-                break
+            select_index = prompt('Select a subscription and tenant (Type a number or Enter for no changes): ')
 
             # Nothing is typed, keep current selection
             if select_index == '':
@@ -95,7 +87,6 @@ class SubscriptionSelector:  # pylint: disable=too-few-public-methods
 
         # Echo the selection
         tenant_string = self._get_tenant_string(selected)
-
         print(f"\nTenant: {tenant_string}\n"
               f"Subscription: {selected[_SUBSCRIPTION_NAME]} ({selected[_SUBSCRIPTION_ID]})\n")
         return selected
