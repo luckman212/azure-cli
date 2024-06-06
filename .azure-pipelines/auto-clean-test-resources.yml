@@ -33,6 +33,5 @@ stages:
           inlineScript: |
             set -ev
             pwd
-            find / -name 'clean.py'
             python scripts/live_test/clean.py
           cwd: $(System.DefaultWorkingDirectory)
