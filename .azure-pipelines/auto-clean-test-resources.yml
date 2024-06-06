@@ -33,5 +33,6 @@ stages:
           inlineScript: |
             set -ev
             pwd
+            pip install tqdm
             python scripts/live_test/clean.py
           cwd: $(System.DefaultWorkingDirectory)
