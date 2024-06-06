@@ -1,0 +1,36 @@
+name: CLI CLEAN TEST RESOURCES
+
+trigger:
+  branches:
+    exclude:
+    - '*'
+
+variables:
+- template: ${{ variables.Pipeline.Workspace }}/.azure-pipelines/templates/variables.yml
+
+stages:
+- stage: CLEAN
+  displayName: CLI CLEAN TEST RESOURCES
+  jobs:
+  - job: CleanTest
+    displayName: CLI CLEAN TEST RESOURCES
+    timeoutInMinutes: 0
+    pool:
+      name: ${{ variables.ubuntu_pool }}
+    steps:
+      - task: UsePythonVersion@0
+        condition: and(succeededOrFailed(), eq(variables.Match, '1'))
+        inputs:
+          versionSpec: '$(PYTHON_VERSION)'
+          addToPath: true
+          architecture: 'x64'
+      - task: AzureCLI@2
+        displayName: 'Run clean.py'
+        inputs:
+          azureSubscription: $(AZURE_CLI_LIVE_TEST_CONNECTED_SERVICE)
+          scriptType: bash
+          scriptLocation: inlineScript
+          inlineScript: |
+            set -ev
+            python scripts/live_test/clean.py
+          cwd: $(System.DefaultWorkingDirectory)/azure-cli

@@ -16,17 +16,31 @@ from tqdm import tqdm
 
 def main():
     print('Azure cli resource clean up: version 1.0')
+    check_sub_name()
     clean_lock()
     clean_sig()
     clean_storage()
     clean_servicebus()
     clean_backup()
     clean_deleted_keyvault()
+    clean_resource_group()
+
+
+def check_sub_name():
+    print('Check subscription name')
+    cmd = ['az', 'account', 'show', '--query', 'name']
+    print(cmd)
+    out = subprocess.run(cmd, capture_output=True)
+    sub_name = json.loads(out.stdout)
+    print(sub_name)
+    if sub_name != 'AzureSDKTest':
+        print('Only support AzureSDKTest!')
+        exit(0)
 
 
 def clean_lock():
     print('Clean lock')
-    cmd = ['az', 'lock', 'list', '--query', '[][id, name, resourceGroup]']
+    cmd = ['az', 'lock', 'list', '--query', '[][id, name, resourceGroup, type]']
     print(cmd)
     out = subprocess.run(cmd, capture_output=True)
     locks = json.loads(out.stdout)
@@ -36,26 +50,33 @@ def clean_lock():
     out = subprocess.run(cmd, capture_output=True)
     cli_test_resoure_groups = json.loads(out.stdout)
     print(cli_test_resoure_groups)
-    for resource_id, lock_name, rg in tqdm(locks):
+    for resource_id, lock_name, rg, type in tqdm(locks):
         if rg in cli_test_resoure_groups:
-            cmd = f'az lock delete --name {lock_name} --resource-group {rg}'
+            cmd = ['az', 'lock', 'delete', '--name', lock_name, '--resource-group', rg]
             print(cmd)
-            result = os.popen(cmd).read()
+            result = subprocess.run(cmd, capture_output=True)
             print(result)
+            if result.stderr.decode('utf-8') == '':
+                print('Success to delete lock for resource group %s' % rg)
+            elif "ERROR: Unexpected" in result.stderr.decode('utf-8'):
+                resource_id = 'providers'.join(resource_id.split('providers')[0:2])[:-1]
+                cmd = ['az', 'lock', 'delete', '--name', lock_name, '--resource', resource_id]
+                print(cmd)
+                result = subprocess.run(cmd, capture_output=True)
+                print(result)
+                if result.stderr.decode('utf-8') == '':
+                    print('Success to delete lock for resource %s' % resource_id)
+                else:
+                    print(result.stderr.decode('utf-8'))
+                    print('Fail to delete lock for [%s, %s, %s, %s]' % resource_id, lock_name, rg, type)
+            else:
+                print(result.stderr.decode('utf-8'))
+                print('Fail to delete lock for [%s, %s, %s, %s]' % resource_id, lock_name, rg, type)
     cmd = ['az', 'lock', 'list', '--query', '[][id, name, resourceGroup]']
     print(cmd)
     out = subprocess.run(cmd, capture_output=True)
     locks = json.loads(out.stdout)
     print(locks)
-    for resource_id, lock_name, rg in tqdm(locks):
-        if rg in cli_test_resoure_groups:
-            resource_id = resource_id.split('providers')[1].split('/')
-            resource_name = resource_id[3]
-            resource_type = "/".join(resource_id[1:3])
-            cmd = f'az lock delete --name {lock_name} --resource-group {rg} --resource {resource_name} --resource-type {resource_type}'
-            print(cmd)
-            result = os.popen(cmd).read()
-            print(result)
 
 
 def clean_sig():
@@ -311,7 +332,11 @@ def clean_resource_group():
         out = subprocess.run(cmd, capture_output=True)
         # skip the resource group when get a lock
         # b'[]\r\n'
-        locks = json.loads(out.stdout)
+        try:
+            locks = json.loads(out.stdout)
+        except json.JSONDecodeError:
+            print(out.stdout)
+            continue
         print(locks)
         if locks:
             continue
