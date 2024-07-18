@@ -18,6 +18,7 @@ steps:
       python -m pip install -U pip setuptools
       pip list
       pip install markupsafe==2.0.1 -v
+      pip install pycparser==2.19 -v
       pip install azdev
       azdev --version
 
