@@ -15,9 +15,9 @@ steps:
       python -m venv env
       chmod +x env/bin/activate
       . env/bin/activate
-      python -m pip install -U pip
+      python -m pip install -U pip setuptools
       pip list
-      pip install markupsafe==2.0.1 -vvv
+      pip install markupsafe==2.0.1 -v
       pip install azdev
       azdev --version
 
