@@ -320,15 +320,16 @@ def clean_deleted_keyvault():
 
 def clean_resource_group():
     skip_grous = []
+    deleted_groups = []
     cmd = ['az', 'group', 'list', '--query', '[].name']
-    print(cmd)
+    print(f"Running command: {' '.join(cmd)}")
     out = subprocess.run(cmd, capture_output=True)
     rgs = json.loads(out.stdout) if out.stdout else []
     for rg in rgs:
         if rg in skip_grous:
             continue
         cmd = ['az', 'lock', 'list', '-g', rg]
-        print(cmd)
+        print(f"Running command: {' '.join(cmd)}")
         out = subprocess.run(cmd, capture_output=True)
         # skip the resource group when get a lock
         # b'[]\r\n'
@@ -340,10 +341,23 @@ def clean_resource_group():
         print(locks)
         if locks:
             continue
-        cmd = ['az', 'group', 'delete', '-n', rg, '--yes']
-        print(cmd)
+        cmd = ['az', 'group', 'delete', '-n', rg, '--yes', '--no-wait']
+        deleted_groups.append(rg)
+        print(f"Running command: {' '.join(cmd)}")
         out = subprocess.run(cmd, capture_output=True)
         print(out.stdout)
+
+    cmd = ['az', 'group', 'list', '--query', '[].name']
+    print(f"Running command: {' '.join(cmd)}")
+    out = subprocess.run(cmd, capture_output=True)
+    rgs = json.loads(out.stdout) if out.stdout else []
+    for rg in deleted_groups:
+        if rg in rgs:
+            cmd = ['az', 'group', 'delete', '-n', rg, '--yes', '--debug']
+            print(f"Running command: {' '.join(cmd)}")
+            out = subprocess.run(cmd, capture_output=True, text=True)
+            if out.returncode != 0:
+                print(f"Failed to delete resource group {rg}: {out.stderr}")
 
 
 if __name__ == '__main__':
