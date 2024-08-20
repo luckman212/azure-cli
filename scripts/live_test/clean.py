@@ -321,6 +321,8 @@ def clean_deleted_keyvault():
 def clean_resource_group():
     skip_grous = []
     deleted_groups = []
+    failed_groups = []
+    retry_groups = []
     cmd = ['az', 'group', 'list', '--query', '[].name']
     print(f"Running command: {' '.join(cmd)}")
     out = subprocess.run(cmd, capture_output=True)
@@ -353,11 +355,21 @@ def clean_resource_group():
     rgs = json.loads(out.stdout) if out.stdout else []
     for rg in deleted_groups:
         if rg in rgs:
+            failed_groups.append(rg)
             cmd = ['az', 'group', 'delete', '-n', rg, '--yes', '--debug']
             print(f"Running command: {' '.join(cmd)}")
             out = subprocess.run(cmd, capture_output=True, text=True)
             if out.returncode != 0:
                 print(f"Failed to delete resource group {rg}: {out.stderr}")
+    print(f"Failed groups: {failed_groups}")
+    cmd = ['az', 'group', 'list', '--query', '[].name']
+    print(f"Running command: {' '.join(cmd)}")
+    out = subprocess.run(cmd, capture_output=True)
+    rgs = json.loads(out.stdout) if out.stdout else []
+    for rg in failed_groups:
+        if rg in rgs:
+            retry_groups.append(rg)
+            print(f"Retry groups: {retry_groups}")
 
 
 if __name__ == '__main__':
