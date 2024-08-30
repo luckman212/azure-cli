@@ -280,7 +280,7 @@ class Profile:
 
     def login_in_cloud_shell(self):
         import jwt
-        from .auth.msal_authentication import CloudShellCredential
+        from .auth.msal_credentials import CloudShellCredential
 
         cred = CloudShellCredential()
         token = cred.get_token(*self._arm_scope).token
@@ -348,8 +348,11 @@ class Profile:
 
         if in_cloud_console() and account[_USER_ENTITY].get(_CLOUD_SHELL_ID):
             # Cloud Shell
-            from .auth.msal_authentication import CloudShellCredential
-            cred = CloudShellCredential()
+            from .auth.msal_credentials import CloudShellCredential
+            from azure.cli.core.auth.credential_adaptor import CredentialAdaptor
+            cs_cred = CloudShellCredential()
+            # The cloud shell credential must be wrapped by CredentialAdaptor so that it can work with Track 1 SDKs.
+            cred = CredentialAdaptor(cs_cred, resource=resource)
 
         elif managed_identity_type:
             # managed identity
@@ -401,7 +404,7 @@ class Profile:
             # Cloud Shell
             if tenant:
                 raise CLIError("Tenant shouldn't be specified for Cloud Shell account")
-            from .auth.msal_authentication import CloudShellCredential
+            from .auth.msal_credentials import CloudShellCredential
             cred = CloudShellCredential()
 
         elif managed_identity_type:
