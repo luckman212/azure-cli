@@ -482,7 +482,7 @@ jobs:
       CLI_VERSION=`cat $BUILD_ARTIFACTSTAGINGDIRECTORY/metadata/version`
       echo "== Testing pip install on $PYTHON_VERSION =="
       cd $BUILD_ARTIFACTSTAGINGDIRECTORY/pypi
-      pip install --find-links ./ azure_cli-$CLI_VERSION*whl && az self-test && az --version && sleep 5"
+      pip install --find-links ./ azure_cli-$CLI_VERSION*whl && az self-test && az --version && sleep 5
     displayName: 'Test pip Install'
 
 - job: TestCore
@@ -559,8 +559,8 @@ jobs:
     displayName: 'Use Python $(python.version)'
     inputs:
       versionSpec: '$(python.version)'
-  - bash: pip install --upgrade pip wheel
-    displayName: 'Install pip and wheel'
+  - bash: pip install --upgrade pip wheel setuptools
+    displayName: 'Install pip and wheel setuptools'
   - bash: ./scripts/ci/test_extensions.sh
     displayName: 'Load extensions'
 
@@ -597,7 +597,7 @@ jobs:
                  -e CLI_VERSION=$CLI_VERSION \
                  -e HOMEBREW_UPSTREAM_URL=$HOMEBREW_UPSTREAM_URL \
                  --name azurecli \
-                mcr.microsoft.com/azurelinux/base/python:3 \
+                 mcr.microsoft.com/azurelinux/base/python:3 \
                  /mnt/scripts/run.sh
       
       # clean up
