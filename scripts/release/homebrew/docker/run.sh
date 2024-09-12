@@ -2,6 +2,8 @@
 
 root=$(cd $(dirname $0); pwd)
 
+tdnf install -y ca-certificates
+
 pip install wheel
 pip install -U pip
 pip install -r $root/requirements.txt

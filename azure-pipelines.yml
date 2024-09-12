@@ -552,6 +552,8 @@ jobs:
     name: ${{ variables.ubuntu_pool }}
   strategy:
     matrix:
+      Python39:
+        python.version: '3.9'
       Python312:
         python.version: '3.12'
   steps:
