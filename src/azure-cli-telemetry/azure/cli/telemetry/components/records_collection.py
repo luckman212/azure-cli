@@ -40,7 +40,7 @@ class RecordsCollection:
         for each in os.listdir(self._cache_dir):
             self._read_file(os.path.join(self._cache_dir, each))
 
-        shutil.rmtree(self._cache_dir,
+        shutil.rmtree(self._cache_dir,  # pylint: disable=deprecated-argument
                       ignore_errors=True,
                       onerror=lambda _, p, tr: self._logger.error('Fail to remove file %s', p))
         self._logger.info('Remove directory %s', self._cache_dir)

@@ -538,7 +538,7 @@ jobs:
     displayName: 'Use Python $(python.version)'
     inputs:
       versionSpec: '$(python.version)'
-  - bash: pip install --upgrade pip wheel
+  - bash: pip install --upgrade pip wheel setuptools
     displayName: 'Install pip and wheel'
   - bash: ./scripts/ci/test_profile_integration.sh
     displayName: 'Run Integration Test against Profiles'
