@@ -116,9 +116,9 @@ class CloudShellCredential:  # pylint: disable=too-few-public-methods
         from .identity import AZURE_CLI_CLIENT_ID
         self._msal_app = PublicClientApplication(
             AZURE_CLI_CLIENT_ID,  # Use a real client_id, so that cache would work
-            # TODO: This PoC does not currently maintain a token cache;
-            #   Ideally we should reuse the real MSAL app object which has cache configured.
-            # token_cache=...,
+            # TODO: We currently don't maintain an MSAL token cache as Cloud Shell already has its own token cache.
+            #   Ideally we should also use an MSAL token cache.
+            #   token_cache=...
         )
 
     def get_token(self, *scopes, **kwargs):  # pylint: disable=no-self-use
