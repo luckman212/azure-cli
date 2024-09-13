@@ -95,7 +95,6 @@ DEPENDENCIES = [
     'azure-mgmt-keyvault==10.3.0',
     'azure-mgmt-kusto~=0.3.0',
     'azure-mgmt-loganalytics==13.0.0b4',
-    'azure-mgmt-managedservices~=1.0',
     'azure-mgmt-managementgroups~=1.0.0',
     'azure-mgmt-maps~=2.0.0',
     'azure-mgmt-marketplaceordering==1.1.0',
@@ -144,6 +143,7 @@ DEPENDENCIES = [
     'PyNaCl~=1.5.0',
     'scp~=0.13.2',
     'semver==2.13.0',
+    'setuptools',
     'six>=1.10.0',  # six is still used by countless extensions
     'sshtunnel~=0.1.4',
     # Even though knack already depends on tabulate, profile module directly uses it for interactive subscription
