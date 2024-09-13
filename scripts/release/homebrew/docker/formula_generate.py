@@ -87,6 +87,8 @@ def collect_resources_dict() -> dict:
     nodes = make_graph('azure-cli')
     filtered_nodes = {nodes[node_name]['name']: nodes[node_name] for node_name in sorted(nodes) if
                       resource_filter(node_name)}
+    print(filtered_nodes)
+    raise
     return filtered_nodes
 
 
