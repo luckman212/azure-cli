@@ -26,6 +26,9 @@ exit_code=0
 # Disable db-up temporarily: https://github.com/Azure/azure-cli/pull/29887
 ignore_list='azure-cli-ml fzf arcappliance arcdata connectedk8s k8s-extension alias db-up'
 
+# Does not exit if az extension add fails until all extensions have been tested
+set +e
+
 for ext in $output; do
     echo
     # Use regex to detect if $ext is in $ignore_list
