@@ -111,6 +111,10 @@ class ServicePrincipalCredential:  # pylint: disable=too-few-public-methods
 
 
 class CloudShellCredential:  # pylint: disable=too-few-public-methods
+    # Cloud Shell acts as a "broker" to obtain access token for the user account, so even though it uses
+    # managed identity protocol, it returns a user token.
+    # That's why MSAL uses acquire_token_interactive to retrieve an access token in Cloud Shell.
+    # See https://github.com/Azure/azure-cli/pull/29637
 
     def __init__(self):
         from .identity import AZURE_CLI_CLIENT_ID
