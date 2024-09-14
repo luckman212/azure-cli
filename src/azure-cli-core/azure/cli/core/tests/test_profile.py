@@ -81,6 +81,15 @@ class MSRestAzureAuthStub:
         return AccessToken(self.token['access_token'], int(self.token['expires_on']))
 
 
+class CloudShellCredentialStub:
+    def __init__(self):
+        self.get_token_scopes = None
+
+    def get_token(self, *scopes, **kwargs):
+        self.get_token_scopes = scopes
+        return AccessToken(TestProfile.test_msi_access_token, int(MOCK_EXPIRES_ON_STR))
+
+
 class TestProfile(unittest.TestCase):
 
     @classmethod
@@ -473,9 +482,9 @@ class TestProfile(unittest.TestCase):
         self.assertEqual(output, subs)
 
     @mock.patch('azure.cli.core._profile.SubscriptionFinder._create_subscription_client', autospec=True)
-    @mock.patch('azure.cli.core.auth.adal_authentication.MSIAuthenticationWrapper', autospec=True)
-    def test_login_in_cloud_shell(self, msi_auth_mock, create_subscription_client_mock):
-        msi_auth_mock.return_value = MSRestAzureAuthStub()
+    @mock.patch('azure.cli.core.auth.msal_credentials.CloudShellCredential', autospec=True)
+    def test_login_in_cloud_shell(self, cloud_shell_credential_mock, create_subscription_client_mock):
+        cloud_shell_credential_mock.return_value = CloudShellCredentialStub()
 
         cli = DummyCli()
         mock_subscription_client = mock.MagicMock()
@@ -487,8 +496,9 @@ class TestProfile(unittest.TestCase):
 
         subscriptions = profile.login_in_cloud_shell()
 
-        # Check correct token is used
-        assert create_subscription_client_mock.call_args[0][1].token['access_token'] == TestProfile.test_msi_access_token
+        # Verify correct scopes are passed to get_token
+        credential_instance = create_subscription_client_mock.call_args.args[1]
+        assert credential_instance.get_token_scopes == ('https://management.core.windows.net//.default',)
 
         self.assertEqual(len(subscriptions), 1)
         s = subscriptions[0]
@@ -1245,8 +1255,8 @@ class TestProfile(unittest.TestCase):
             cred, subscription_id, _ = profile.get_raw_token(resource='http://test_resource', tenant=self.tenant_id)
 
     @mock.patch('azure.cli.core._profile.in_cloud_console', autospec=True)
-    @mock.patch('azure.cli.core.auth.adal_authentication.MSIAuthenticationWrapper', autospec=True)
-    def test_get_raw_token_in_cloud_console(self, mock_msi_auth, mock_in_cloud_console):
+    @mock.patch('azure.cli.core.auth.msal_credentials.CloudShellCredential', autospec=True)
+    def test_get_raw_token_in_cloud_console(self, cloud_shell_credential_mock, mock_in_cloud_console):
         mock_in_cloud_console.return_value = True
 
         # setup an existing msi subscription
@@ -1261,35 +1271,45 @@ class TestProfile(unittest.TestCase):
         consolidated[0]['user']['cloudShellID'] = True
         profile._set_subscriptions(consolidated)
 
-        mi_auth_instance = None
+        # The below code creates a credential instance and checks it.
+        #
+        # We can define a normal variable `credential_instance` here and use `nonlocal` to assign the credential
+        # instance to it, but using a mutable list also allows us to check how many instances are created.
+        # See https://stackoverflow.com/a/8448011/2199657
+        #
+        # test_login_in_cloud_shell retrieves the credential instance from
+        # create_subscription_client_mock.call_args.args[1], so another possible way to retrieve the credential
+        # instance is to create a hook in get_raw_token and patch that hook during tests.
+        credential_instances = []
 
-        def mi_auth_factory(*args, **kwargs):
-            nonlocal mi_auth_instance
-            mi_auth_instance = MSRestAzureAuthStub(*args, **kwargs)
-            return mi_auth_instance
+        def cloud_shell_credential_factory():
+            credential = CloudShellCredentialStub()
+            credential_instances.append(credential)
+            return credential
 
-        mock_msi_auth.side_effect = mi_auth_factory
+        cloud_shell_credential_mock.side_effect = cloud_shell_credential_factory
 
         # action
-        cred, subscription_id, tenant_id = profile.get_raw_token(resource=self.adal_resource)
+        token_cred, subscription_id, tenant_id = profile.get_raw_token(scopes=self.msal_scopes)
 
-        # Make sure resource/scopes are passed to MSIAuthenticationWrapper
-        assert mi_auth_instance.resource == self.adal_resource
-        assert list(mi_auth_instance.get_token_scopes) == self.msal_scopes
+        # Verify only one credential is created
+        assert len(credential_instances) == 1
+        # Verify correct scopes are passed to get_token
+        assert list(credential_instances[0].get_token_scopes) == self.msal_scopes
 
         self.assertEqual(subscription_id, test_subscription_id)
-        self.assertEqual(cred[0], 'Bearer')
-        self.assertEqual(cred[1], TestProfile.test_msi_access_token)
+        self.assertEqual(token_cred[0], 'Bearer')
+        self.assertEqual(token_cred[1], TestProfile.test_msi_access_token)
 
         # Make sure expires_on and expiresOn are set
-        self.assertEqual(cred[2]['expires_on'], MOCK_EXPIRES_ON_INT)
-        self.assertEqual(cred[2]['expiresOn'], MOCK_EXPIRES_ON_DATETIME)
+        self.assertEqual(token_cred[2]['expires_on'], MOCK_EXPIRES_ON_INT)
+        self.assertEqual(token_cred[2]['expiresOn'], MOCK_EXPIRES_ON_DATETIME)
         self.assertEqual(subscription_id, test_subscription_id)
         self.assertEqual(tenant_id, test_tenant_id)
 
         # verify tenant shouldn't be specified for Cloud Shell account
         with self.assertRaisesRegex(CLIError, 'Cloud Shell'):
-            cred, subscription_id, _ = profile.get_raw_token(resource='http://test_resource', tenant=self.tenant_id)
+            profile.get_raw_token(resource='http://test_resource', tenant=self.tenant_id)
 
     @mock.patch('azure.cli.core.auth.identity.Identity.logout_service_principal')
     @mock.patch('azure.cli.core.auth.identity.Identity.logout_user')
