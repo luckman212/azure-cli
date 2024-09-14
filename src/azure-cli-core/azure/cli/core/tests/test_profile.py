@@ -4,6 +4,7 @@
 # --------------------------------------------------------------------------------------------
 
 # pylint: disable=protected-access
+import base64
 import json
 import datetime
 import unittest
@@ -27,6 +28,15 @@ BEARER = 'Bearer'
 
 MOCK_TENANT_DISPLAY_NAME = 'TEST_TENANT_DISPLAY_NAME'
 MOCK_TENANT_DEFAULT_DOMAIN = 'test.onmicrosoft.com'
+
+
+def _build_test_jwt(claims):
+    parts = [
+        '{"typ":"JWT","alg":"RS256"}',
+        json.dumps(claims, separators=(',', ':')),
+        'test_sig'
+    ]
+    return '.'.join(base64.urlsafe_b64encode(p.encode('utf-8')).decode('utf-8').replace('=', '') for p in parts)
 
 
 class CredentialMock:
@@ -87,14 +97,14 @@ class CloudShellCredentialStub:
 
     def get_token(self, *scopes, **kwargs):
         self.get_token_scopes = scopes
-        return AccessToken(TestProfile.test_msi_access_token, int(MOCK_EXPIRES_ON_STR))
+        return AccessToken(TestProfile.test_cloud_shell_access_token, MOCK_EXPIRES_ON_INT)
 
 
 class TestProfile(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.tenant_id = 'microsoft.com'
+        cls.tenant_id = 'test.onmicrosoft.com'
         cls.tenant_display_name = MOCK_TENANT_DISPLAY_NAME
         cls.tenant_default_domain = MOCK_TENANT_DEFAULT_DOMAIN
 
@@ -121,14 +131,14 @@ class TestProfile(unittest.TestCase):
                                                  managed_by_tenants=cls.managed_by_tenants)
 
         cls.subscription1_output = [{'environmentName': 'AzureCloud',
-                                     'homeTenantId': 'microsoft.com',
+                                     'homeTenantId': 'test.onmicrosoft.com',
                                      'id': '1',
                                      'isDefault': True,
                                      'managedByTenants': [{'tenantId': '00000003-0000-0000-0000-000000000000'},
                                                           {'tenantId': '00000004-0000-0000-0000-000000000000'}],
                                      'name': 'foo account',
                                      'state': 'Enabled',
-                                     'tenantId': 'microsoft.com',
+                                     'tenantId': 'test.onmicrosoft.com',
                                      'user': {
                                          'name': 'foo@foo.com',
                                          'type': 'user'
@@ -136,14 +146,14 @@ class TestProfile(unittest.TestCase):
 
         cls.subscription1_with_tenant_info_output = [{
             'environmentName': 'AzureCloud',
-            'homeTenantId': 'microsoft.com',
+            'homeTenantId': 'test.onmicrosoft.com',
             'id': '1',
             'isDefault': True,
             'managedByTenants': [{'tenantId': '00000003-0000-0000-0000-000000000000'},
                                  {'tenantId': '00000004-0000-0000-0000-000000000000'}],
             'name': 'foo account',
             'state': 'Enabled',
-            'tenantId': 'microsoft.com',
+            'tenantId': 'test.onmicrosoft.com',
             'tenantDisplayName': MOCK_TENANT_DISPLAY_NAME,
             'tenantDefaultDomain': MOCK_TENANT_DEFAULT_DOMAIN,
             'user': {
@@ -234,48 +244,18 @@ class TestProfile(unittest.TestCase):
             'homeTenantId': cls.tenant_id,
             'managedByTenants': [],
         }
-        cls.test_msi_tenant = '54826b22-38d6-4fb2-bad9-b7b93a3e9c5a'
-        cls.test_msi_access_token = ('eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6IlZXVkljMVdEMVRrc2JiMzAxc2FzTTVrT3E1'
-                                     'USIsImtpZCI6IlZXVkljMVdEMVRrc2JiMzAxc2FzTTVrT3E1USJ9.eyJhdWQiOiJodHRwczovL21hbmF'
-                                     'nZW1lbnQuY29yZS53aW5kb3dzLm5ldC8iLCJpc3MiOiJodHRwczovL3N0cy53aW5kb3dzLm5ldC81NDg'
-                                     'yNmIyMi0zOGQ2LTRmYjItYmFkOS1iN2I5M2EzZTljNWEvIiwiaWF0IjoxNTAzMzU0ODc2LCJuYmYiOjE'
-                                     '1MDMzNTQ4NzYsImV4cCI6MTUwMzM1ODc3NiwiYWNyIjoiMSIsImFpbyI6IkFTUUEyLzhFQUFBQTFGL1k'
-                                     '0VVR3bFI1Y091QXJxc1J0OU5UVVc2MGlsUHZna0daUC8xczVtdzg9IiwiYW1yIjpbInB3ZCJdLCJhcHB'
-                                     'pZCI6IjA0YjA3Nzk1LThkZGItNDYxYS1iYmVlLTAyZjllMWJmN2I0NiIsImFwcGlkYWNyIjoiMCIsImV'
-                                     'fZXhwIjoyNjI4MDAsImZhbWlseV9uYW1lIjoic2RrIiwiZ2l2ZW5fbmFtZSI6ImFkbWluMyIsImdyb3V'
-                                     'wcyI6WyJlNGJiMGI1Ni0xMDE0LTQwZjgtODhhYi0zZDhhOGNiMGUwODYiLCI4YTliMTYxNy1mYzhkLTR'
-                                     'hYTktYTQyZi05OTg2OGQzMTQ2OTkiLCI1NDgwMzkxNy00YzcxLTRkNmMtOGJkZi1iYmQ5MzEwMTBmOGM'
-                                     'iXSwiaXBhZGRyIjoiMTY3LjIyMC4xLjIzNCIsIm5hbWUiOiJhZG1pbjMiLCJvaWQiOiJlN2UxNThkMy0'
-                                     '3Y2RjLTQ3Y2QtODgyNS01ODU5ZDdhYjJiNTUiLCJwdWlkIjoiMTAwMzNGRkY5NUQ0NEU4NCIsInNjcCI'
-                                     '6InVzZXJfaW1wZXJzb25hdGlvbiIsInN1YiI6ImhRenl3b3FTLUEtRzAySTl6ZE5TRmtGd3R2MGVwZ2l'
-                                     'WY1Vsdm1PZEZHaFEiLCJ0aWQiOiI1NDgyNmIyMi0zOGQ2LTRmYjItYmFkOS1iN2I5M2EzZTljNWEiLCJ'
-                                     '1bmlxdWVfbmFtZSI6ImFkbWluM0BBenVyZVNES1RlYW0ub25taWNyb3NvZnQuY29tIiwidXBuIjoiYWR'
-                                     'taW4zQEF6dXJlU0RLVGVhbS5vbm1pY3Jvc29mdC5jb20iLCJ1dGkiOiJuUEROYm04UFkwYUdELWhNeWx'
-                                     'rVEFBIiwidmVyIjoiMS4wIiwid2lkcyI6WyI2MmU5MDM5NC02OWY1LTQyMzctOTE5MC0wMTIxNzcxNDV'
-                                     'lMTAiXX0.Pg4cq0MuP1uGhY_h51ZZdyUYjGDUFgTW2EfIV4DaWT9RU7GIK_Fq9VGBTTbFZA0pZrrmP-z'
-                                     '7DlN9-U0A0nEYDoXzXvo-ACTkm9_TakfADd36YlYB5aLna-yO0B7rk5W9ANelkzUQgRfidSHtCmV6i4V'
-                                     'e-lOym1sH5iOcxfIjXF0Tp2y0f3zM7qCq8Cp1ZxEwz6xYIgByoxjErNXrOME5Ld1WizcsaWxTXpwxJn_'
-                                     'Q8U2g9kXHrbYFeY2gJxF_hnfLvNKxUKUBnftmyYxZwKi0GDS0BvdJnJnsqSRSpxUx__Ra9QJkG1IaDzj'
-                                     'ZcSZPHK45T6ohK9Hk9ktZo0crVl7Tmw')
-        cls.test_user_msi_access_token = ('eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6IlNzWnNCTmhaY0YzUTlTNHRycFFCVE'
-                                          'J5TlJSSSIsImtpZCI6IlNzWnNCTmhaY0YzUTlTNHRycFFCVEJ5TlJSSSJ9.eyJhdWQiOiJodHR'
-                                          'wczovL21hbmFnZW1lbnQuY29yZS53aW5kb3dzLm5ldCIsImlzcyI6Imh0dHBzOi8vc3RzLndpbm'
-                                          'Rvd3MubmV0LzU0ODI2YjIyLTM4ZDYtNGZiMi1iYWQ5LWI3YjkzYTNlOWM1YS8iLCJpYXQiOjE1O'
-                                          'TE3ODM5MDQsIm5iZiI6MTU5MTc4MzkwNCwiZXhwIjoxNTkxODcwNjA0LCJhaW8iOiI0MmRnWUZE'
-                                          'd2JsZmR0WmYxck8zeGlMcVdtOU5MQVE9PSIsImFwcGlkIjoiNjJhYzQ5ZTYtMDQzOC00MTJjLWJ'
-                                          'kZjUtNDg0ZTdkNDUyOTM2IiwiYXBwaWRhY3IiOiIyIiwiaWRwIjoiaHR0cHM6Ly9zdHMud2luZG'
-                                          '93cy5uZXQvNTQ4MjZiMjItMzhkNi00ZmIyLWJhZDktYjdiOTNhM2U5YzVhLyIsIm9pZCI6ImQ4M'
-                                          'zRjNjZmLTNhZjgtNDBiNy1iNDYzLWViZGNlN2YzYTgyNyIsInN1YiI6ImQ4MzRjNjZmLTNhZjgt'
-                                          'NDBiNy1iNDYzLWViZGNlN2YzYTgyNyIsInRpZCI6IjU0ODI2YjIyLTM4ZDYtNGZiMi1iYWQ5LWI'
-                                          '3YjkzYTNlOWM1YSIsInV0aSI6Ild2YjFyVlBQT1V5VjJDYmNyeHpBQUEiLCJ2ZXIiOiIxLjAiLC'
-                                          'J4bXNfbWlyaWQiOiIvc3Vic2NyaXB0aW9ucy8wYjFmNjQ3MS0xYmYwLTRkZGEtYWVjMy1jYjkyNz'
-                                          'JmMDk1OTAvcmVzb3VyY2Vncm91cHMvcWlhbndlbnMvcHJvdmlkZXJzL01pY3Jvc29mdC5NYW5hZ2'
-                                          'VkSWRlbnRpdHkvdXNlckFzc2lnbmVkSWRlbnRpdGllcy9xaWFud2VuaWRlbnRpdHkifQ.nAxWA5_'
-                                          'qTs_uwGoziKtDFAqxlmYSlyPGqAKZ8YFqFfm68r5Ouo2x2PztAv2D71L-j8B3GykNgW-2yhbB-z2'
-                                          'h53dgjG2TVoeZjhV9DOpSJ06kLAeH-nskGxpBFf7se1qohlU7uyctsUMQWjXVUQbTEanJzj_IH-Y'
-                                          '47O3lvM4Yrliz5QUApm63VF4EhqNpNvb5w0HkuB72SJ0MKJt5VdQqNcG077NQNoiTJ34XVXkyNDp'
-                                          'I15y0Cj504P_xw-Dpvg-hmEbykjFMIaB8RoSrp3BzYjNtJh2CHIuWhXF0ngza2SwN2CXK0Vpn5Za'
-                                          'EvZdD57j3h8iGE0Tw5IzG86uNS2AQ0A')
+
+        # A random GUID generated by uuid.uuid4()
+        cls.test_cloud_shell_tenant = 'ee59da2c-4d2c-4cfb-8753-ff9df4f31556'
+        # Cloud Shell returns a user token which contains the unique_name claim
+        cls.test_cloud_shell_access_token = _build_test_jwt({
+            'tid': cls.test_cloud_shell_tenant,
+            'unique_name': 'foo@foo.com'
+        })
+
+        # A random GUID generated by uuid.uuid4()
+        cls.test_msi_tenant = 'b6f04d88-9bff-45da-a9b4-a0b6d3cb1b2a'
+        cls.test_msi_access_token = _build_test_jwt({'tid': cls.test_msi_tenant})
 
         cls.msal_accounts = [
             {
@@ -465,14 +445,14 @@ class TestProfile(unittest.TestCase):
         subs = profile.login(False, 'my app', {'secret': 'very_secret'}, True, self.tenant_id, use_device_code=True,
                              allow_no_subscriptions=False)
         output = [{'environmentName': 'AzureCloud',
-                   'homeTenantId': 'microsoft.com',
+                   'homeTenantId': 'test.onmicrosoft.com',
                    'id': '1',
                    'isDefault': True,
                    'managedByTenants': [{'tenantId': '00000003-0000-0000-0000-000000000000'},
                                         {'tenantId': '00000004-0000-0000-0000-000000000000'}],
                    'name': 'foo account',
                    'state': 'Enabled',
-                   'tenantId': 'microsoft.com',
+                   'tenantId': 'test.onmicrosoft.com',
                    'user': {
                        'name': 'my app',
                        'type': 'servicePrincipal'}}]
@@ -502,8 +482,8 @@ class TestProfile(unittest.TestCase):
 
         self.assertEqual(len(subscriptions), 1)
         s = subscriptions[0]
-        self.assertEqual(s['user']['name'], 'admin3@AzureSDKTeam.onmicrosoft.com')
-        self.assertEqual(s['tenantId'], '54826b22-38d6-4fb2-bad9-b7b93a3e9c5a')
+        self.assertEqual(s['user']['name'], 'foo@foo.com')
+        self.assertEqual(s['tenantId'], self.test_cloud_shell_tenant)
         self.assertEqual(s['user']['cloudShellID'], True)
         self.assertEqual(s['user']['type'], 'user')
         self.assertEqual(s['name'], self.display_name1)
@@ -540,7 +520,7 @@ class TestProfile(unittest.TestCase):
         self.assertEqual(s['user']['assignedIdentityInfo'], 'MSI')
         self.assertEqual(s['name'], self.display_name1)
         self.assertEqual(s['id'], self.id1.split('/')[-1])
-        self.assertEqual(s['tenantId'], '54826b22-38d6-4fb2-bad9-b7b93a3e9c5a')
+        self.assertEqual(s['tenantId'], self.test_msi_tenant)
 
     @mock.patch('requests.get', autospec=True)
     @mock.patch('azure.cli.core._profile.SubscriptionFinder._create_subscription_client', autospec=True)
@@ -605,7 +585,7 @@ class TestProfile(unittest.TestCase):
         s = subscriptions[0]
         self.assertEqual(s['name'], self.display_name1)
         self.assertEqual(s['id'], self.id1.split('/')[-1])
-        self.assertEqual(s['tenantId'], '54826b22-38d6-4fb2-bad9-b7b93a3e9c5a')
+        self.assertEqual(s['tenantId'], self.test_msi_tenant)
 
         self.assertEqual(s['user']['name'], 'userAssignedIdentity')
         self.assertEqual(s['user']['type'], 'servicePrincipal')
@@ -1299,7 +1279,7 @@ class TestProfile(unittest.TestCase):
 
         self.assertEqual(subscription_id, test_subscription_id)
         self.assertEqual(token_cred[0], 'Bearer')
-        self.assertEqual(token_cred[1], TestProfile.test_msi_access_token)
+        self.assertEqual(token_cred[1], TestProfile.test_cloud_shell_access_token)
 
         # Make sure expires_on and expiresOn are set
         self.assertEqual(token_cred[2]['expires_on'], MOCK_EXPIRES_ON_INT)
