@@ -434,11 +434,11 @@ class Profile:
             'expiresOn': expiresOn  # datetime string, like "2020-11-12 13:50:47.114324"
         }
 
-        # (tokenType, accessToken, tokenEntry)
-        creds = 'Bearer', sdk_token.token, token_entry
+        # Build a tuple of (token_type, token, token_entry)
+        token_tuple = 'Bearer', sdk_token.token, token_entry
 
-        # (cred, subscription, tenant)
-        return (creds,
+        # Return a tuple of (token_tuple, subscription, tenant)
+        return (token_tuple,
                 None if tenant else str(account[_SUBSCRIPTION_ID]),
                 str(tenant if tenant else account[_TENANT_ID]))
 

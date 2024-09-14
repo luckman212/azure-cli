@@ -1236,10 +1236,10 @@ class TestProfile(unittest.TestCase):
 
     @mock.patch('azure.cli.core._profile.in_cloud_console', autospec=True)
     @mock.patch('azure.cli.core.auth.msal_credentials.CloudShellCredential', autospec=True)
-    def test_get_raw_token_in_cloud_console(self, cloud_shell_credential_mock, mock_in_cloud_console):
+    def test_get_raw_token_in_cloud_shell(self, cloud_shell_credential_mock, mock_in_cloud_console):
         mock_in_cloud_console.return_value = True
 
-        # setup an existing msi subscription
+        # Set up an existing Cloud Shell account
         profile = Profile(cli_ctx=DummyCli(), storage={'subscriptions': None})
         test_subscription_id = '12345678-1bf0-4dda-aec3-cb9272f09590'
         test_tenant_id = '12345678-38d6-4fb2-bad9-b7b93a3e1234'
@@ -1270,7 +1270,7 @@ class TestProfile(unittest.TestCase):
         cloud_shell_credential_mock.side_effect = cloud_shell_credential_factory
 
         # action
-        token_cred, subscription_id, tenant_id = profile.get_raw_token(scopes=self.msal_scopes)
+        token_tuple, subscription_id, tenant_id = profile.get_raw_token(scopes=self.msal_scopes)
 
         # Verify only one credential is created
         assert len(credential_instances) == 1
@@ -1278,16 +1278,16 @@ class TestProfile(unittest.TestCase):
         assert list(credential_instances[0].get_token_scopes) == self.msal_scopes
 
         self.assertEqual(subscription_id, test_subscription_id)
-        self.assertEqual(token_cred[0], 'Bearer')
-        self.assertEqual(token_cred[1], TestProfile.test_cloud_shell_access_token)
+        self.assertEqual(token_tuple[0], 'Bearer')
+        self.assertEqual(token_tuple[1], TestProfile.test_cloud_shell_access_token)
 
         # Make sure expires_on and expiresOn are set
-        self.assertEqual(token_cred[2]['expires_on'], MOCK_EXPIRES_ON_INT)
-        self.assertEqual(token_cred[2]['expiresOn'], MOCK_EXPIRES_ON_DATETIME)
+        self.assertEqual(token_tuple[2]['expires_on'], MOCK_EXPIRES_ON_INT)
+        self.assertEqual(token_tuple[2]['expiresOn'], MOCK_EXPIRES_ON_DATETIME)
         self.assertEqual(subscription_id, test_subscription_id)
         self.assertEqual(tenant_id, test_tenant_id)
 
-        # verify tenant shouldn't be specified for Cloud Shell account
+        # Verify tenant shouldn't be specified for Cloud Shell account
         with self.assertRaisesRegex(CLIError, 'Cloud Shell'):
             profile.get_raw_token(resource='http://test_resource', tenant=self.tenant_id)
 
