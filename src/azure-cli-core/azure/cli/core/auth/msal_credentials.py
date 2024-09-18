@@ -20,6 +20,7 @@ from knack.log import get_logger
 from knack.util import CLIError
 from msal import PublicClientApplication, ConfidentialClientApplication
 
+from .constants import AZURE_CLI_CLIENT_ID
 from .util import check_result, build_sdk_access_token
 
 logger = get_logger(__name__)
@@ -117,7 +118,6 @@ class CloudShellCredential:  # pylint: disable=too-few-public-methods
     # See https://github.com/Azure/azure-cli/pull/29637
 
     def __init__(self):
-        from .identity import AZURE_CLI_CLIENT_ID
         self._msal_app = PublicClientApplication(
             AZURE_CLI_CLIENT_ID,  # Use a real client_id, so that cache would work
             # TODO: We currently don't maintain an MSAL token cache as Cloud Shell already has its own token cache.
