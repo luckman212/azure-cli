@@ -112,12 +112,13 @@ jobs:
       azureSubscription: $(AZURE_SDK_TEST_SUB_CONNECTED_SERVICE)
       scriptLocation: inlineScript
       inlineScript: |
+        az account set -s 0b1f6471-1bf0-4dda-aec3-cb9272f09590
+
+  - bash: |
         set -ev
-  
+        
         source env/bin/activate
         cd azure-cli-extensions
-  
-        az account set -s 0b1f6471-1bf0-4dda-aec3-cb9272f09590
   
         python ../scripts/ci/automation_full_test.py "12" "$(Instance_idx)" "latest" "" "True" "extension"
   - bash: |
