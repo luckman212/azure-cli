@@ -32,7 +32,12 @@ jobs:
     displayName: 'Pip Authenticate'
     inputs:
       artifactFeeds: 'public/azure-cli-feed'
-  - template: .azure-pipelines/templates/azdev_setup.yml
+  - powershell: |
+      python3 -m venv venv
+      pip install -U pip setuptools
+      ./venv/Scripts/Activate.ps1
+      pip install -r src/azure-cli/requirements.py3.windows.txt
+      pip install azure-cli azure-cli-core azure-cli-telemetry
 
 - job: AddUbuntuDependencies
   displayName: Add Ubuntu Dependencies
@@ -47,7 +52,13 @@ jobs:
     displayName: 'Pip Authenticate'
     inputs:
       artifactFeeds: 'public/azure-cli-feed'
-  - template: .azure-pipelines/templates/azdev_setup.yml
+  - bash: |
+      set -ev
+      python3 -m venv venv
+      pip install -U pip setuptools
+      source ./venv/bin/activate
+      pip install -r src/azure-cli/requirements.py3.windows.txt
+      pip install azure-cli azure-cli-core azure-cli-telemetry 
 
 - job: AddMacosDependencies
   displayName: Add macOS Dependencies
@@ -62,5 +73,11 @@ jobs:
     displayName: 'Pip Authenticate'
     inputs:
       artifactFeeds: 'public/azure-cli-feed'
-  - template: .azure-pipelines/templates/azdev_setup.yml
+  - bash: |
+      set -ev
+      python3 -m venv venv
+      pip install -U pip setuptools
+      source ./venv/bin/activate
+      pip install -r src/azure-cli/requirements.py3.windows.txt
+      pip install azure-cli azure-cli-core azure-cli-telemetry
 
