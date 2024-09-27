@@ -21,8 +21,6 @@ variables:
   value: false
 - name: PIP_INDEX_URL
 
-
-
 jobs:
 - job: AddWindowsDependencies
   displayName: Add Windows Dependencies
@@ -60,6 +58,7 @@ jobs:
       artifactFeeds: 'public/azure-cli-feed'
   - bash: |
       set -ev
+      echo wat
       python3 -m venv venv
       pip install --upgrade pip setuptools
       source ./venv/bin/activate
