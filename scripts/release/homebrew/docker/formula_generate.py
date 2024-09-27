@@ -84,14 +84,7 @@ def collect_resources() -> str:
 
 
 def collect_resources_dict() -> dict:
-    from poet.poet import research_package
-
     nodes = make_graph('azure-cli')
-    # In Python 3.12, pip is not installed in virtual env. I have to explicitly add it into dependency list
-    # Ref https://github.com/Homebrew/brew/pull/16306
-    pip_node = research_package('pip')
-    nodes.appends(pip_node)
-
     filtered_nodes = {nodes[node_name]['name']: nodes[node_name] for node_name in sorted(nodes) if
                       resource_filter(node_name)}
     return filtered_nodes
