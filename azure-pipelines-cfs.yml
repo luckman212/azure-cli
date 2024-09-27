@@ -11,6 +11,9 @@ pr:
   branches:
     include:
     - '*'
+  paths:
+    exclude:
+    - azure-pipelines-cfs.yml
 
 variables:
 - template: ${{ variables.Pipeline.Workspace }}/.azure-pipelines/templates/variables.yml
