@@ -19,7 +19,6 @@ variables:
 - template: ${{ variables.Pipeline.Workspace }}/.azure-pipelines/templates/variables.yml
 - name: Codeql.Enabled
   value: false
-- name: PIP_INDEX_URL
 
 jobs:
 - job: AddWindowsDependencies
@@ -28,9 +27,9 @@ jobs:
     name: ${{ variables.windows_pool }}
   steps:
   - task: UsePythonVersion@0
-    displayName: 'Use Python 3.11'
+    displayName: 'Use Python 3.12'
     inputs:
-      versionSpec: 3.11
+      versionSpec: 3.12
   - task: PipAuthenticate@1
     displayName: 'Pip Authenticate'
     inputs:
@@ -49,16 +48,15 @@ jobs:
     name: ${{ variables.ubuntu_pool }}
   steps:
   - task: UsePythonVersion@0
-    displayName: 'Use Python 3.11'
+    displayName: 'Use Python 3.12'
     inputs:
-      versionSpec: 3.11
+      versionSpec: 3.12
   - task: PipAuthenticate@1
     displayName: 'Pip Authenticate'
     inputs:
       artifactFeeds: 'public/azure-cli-feed'
   - bash: |
       set -ev
-      echo wat
       python3 -m venv venv
       pip install --upgrade pip setuptools
       source ./venv/bin/activate
@@ -71,9 +69,9 @@ jobs:
     vmImage: ${{ variables.macos_pool }}
   steps:
   - task: UsePythonVersion@0
-    displayName: 'Use Python 3.11'
+    displayName: 'Use Python 3.12'
     inputs:
-      versionSpec: 3.11
+      versionSpec: 3.12
   - task: PipAuthenticate@1
     displayName: 'Pip Authenticate'
     inputs:
